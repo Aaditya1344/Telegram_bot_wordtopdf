@@ -35,11 +35,21 @@ async def handle_docx(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         tg_file = await document.get_file()
         await tg_file.download_to_drive(docx_path)
 
+        # Convert via iLovePDF
         ilovepdf_convert_to_pdf(docx_path, pdf_path)
 
-        with open(pdf_path, "rb") as f:
-            await update.message.reply_document(document=f, filename=pdf_filename)
+        # Send PDF back on Telegram right away - in its own try/except so a
+        # slow/timed-out send doesn't stop the Drive folder-picker step below.
+        try:
+            with open(pdf_path, "rb") as f:
+                await update.message.reply_document(document=f, filename=pdf_filename)
+        except Exception:
+            logger.exception("Sending PDF back on Telegram failed or timed out")
+            await update.message.reply_text(
+                "(Took a while sending the PDF back here - continuing with the Drive upload anyway.)"
+            )
 
+        # Look up subfolders of the parent Drive folder and ask which one to use
         await status_msg.edit_text("Converted. Looking up your Drive subfolders...")
         subfolders = drive_service.list_subfolders(config.GOOGLE_DRIVE_FOLDER_ID)
 
@@ -119,7 +129,7 @@ async def handle_folder_choice(update: Update, context: ContextTypes.DEFAULT_TYP
             os.remove(pdf_path)
 
 def main() -> None:
-    app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
+    app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).connect_timeout(60).read_timeout(60).write_timeout(60).pool_timeout(60).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.Document.FileExtension("docx"), handle_docx))
     app.add_handler(CallbackQueryHandler(handle_folder_choice, pattern=r"^upload\|"))

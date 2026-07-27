@@ -1,133 +1,84 @@
-Telegram DOCX → PDF → Google Drive Bot
+# Telegram Word to PDF Converter Bot 🤖📄
 
-A Telegram bot that:
+A modular Python-based Telegram bot that automates the workflow of converting Microsoft Word (`.docx`) documents into PDF format using the iLovePDF API, and uploading the results directly to your personal Google Drive account.
 
-Receives a .docx file from you on Telegram
-Converts it to PDF using the iLoveAPI service
-Sends the PDF back to you on Telegram
-Shows tappable buttons for the subfolders inside a Google Drive folder you configure
-Uploads the PDF to whichever subfolder you pick, using your own Google account (OAuth), and replies with the Drive file ID and link
-Project structure
+The bot scans the immediate subfolders of your target Google Drive directory and gives you interactive buttons to choose exactly where the PDF should go. Once uploaded, it responds with both the **Shareable Web Link** and the unique **Google Drive File ID**.
 
-Requirements
 
-Python 3.10+
-A Telegram account
-A free iloveapi.com account
-A Google account with a Google Cloud project
-A Drive folder already created (with whatever subfolders you want inside it)
+Features
 
-Setup
-1. Clone and install dependencies
-bash
-git clone <your-repo-url>
-cd <your-repo-folder>
-pip install -r requirements.txt --break-system-packages
+- **Automatic Conversion:** Converts any incoming `.docx` file to `.pdf` instantly.
+- **Telegram Native Delivery:** Sends the converted PDF file directly back to your Telegram chat immediately.
+- **Interactive Folder Selection:** Dynamically fetches and displays Google Drive subfolders as clickable buttons.
+- **Detailed Output:** Provides both the standard Drive link and the explicit `File ID` (the string between `/d/` and `/view`) for other automation workflows.
+- **Secure Architecture:** Built completely with separated configurations using environment files (`.env`) to keep private tokens safe.
 
-requirements.txt:
+Prerequisites & Local Setup
 
-python-telegram-bot
-requests
-ilovepdf
-google-api-python-client
-google-auth
-google-auth-oauthlib
-python-dotenv
+ 1. Clone the Repository
+git clone [https://github.com/YOUR_USERNAME/telegram-word-to-pdf.git](https://github.com/YOUR_USERNAME/telegram-word-to-pdf.git)
+cd telegram-word-to-pdf
 
-2. Create your Telegram bot
-Message @BotFather on Telegram.
-Send /newbot and follow the prompts.
-Copy the API token it gives you.
+3. Install the Required Libraries
+This project relies on a few key dependencies to handle the Telegram API, Google OAuth, and file transfers. Install them all with:
 
-4. Get your iLoveAPI keys
-Sign up at iloveapi.com/user/projects.
-Create a project.
-Copy the project's Public Key and Secret Key.
+pip install -r requirements.txt
 
-5. Set up Google Cloud + OAuth
-Go to console.cloud.google.com, create/select a project.
-APIs & Services → Library → enable the Google Drive API.
-APIs & Services → OAuth consent screen:
-User type: External
-Fill in app name/email
-Under Test users, add the Gmail address you'll log in with (required while the app is unpublished — otherwise Google blocks login with a 403 error)
-APIs & Services → Credentials → Create Credentials → OAuth client ID:
-Application type: Desktop app
-Download the JSON, save it as oauth_credentials.json in the project root
+3. Configure Your Environment Variables
+To keep your API credentials safe, this project reads configs from a local .env file which is excluded from git tracking.
 
-6. Get your Drive folder ID
-
-Open the parent folder (the one containing your subfolders) in Drive. From its URL:
-
-https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz
-
-The part after /folders/ is the folder ID.
-
-6. Configure environment variables
-
-Copy .env.example to .env and fill in your values:
-
-bash
+Copy the example template file:
 cp .env.example .env
 
-.env.example:
+Open your new .env file and fill in your unique configuration strings:
 
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 ILOVEPDF_PUBLIC_KEY=your_ilovepdf_public_key_here
 ILOVEPDF_SECRET_KEY=your_ilovepdf_secret_key_here
+GOOGLE_DRIVE_FOLDER_ID=your_target_google_drive_folder_id_here
 GOOGLE_OAUTH_CREDENTIALS_FILE=oauth_credentials.json
 GOOGLE_OAUTH_TOKEN_FILE=oauth_token.json
-GOOGLE_DRIVE_FOLDER_ID=your_drive_folder_id_here
 
-No quotes, no spaces around the =. Make sure the file is actually named .env (Windows/Notepad sometimes silently saves it as .env.txt).
+Fetching Your Credentials
 
-7. Run it
-bash
+A. Telegram Bot Token
+1. Open a chat with `@BotFather` on Telegram and send the `/newbot` command.
+2. Follow the prompts to name your bot and choose a username. 
+3. Copy the unique **API Token** given to you and paste it directly into your local `.env` file under `TELEGRAM_BOT_TOKEN`.
+
+*Alternatively, you can interact with my live instance of this project to see how it works directly at: [Mydocxpdf_bot](https://web.telegram.org/k/#@Mydocxpdf_bot).*
+
+B. iLovePDF API Keys
+Register for a free developer account at developer.ilovepdf.com.
+
+Go to your Developer Dashboard, copy your Public Key and Secret Key, and paste them into your .env file.
+
+C. Google Drive API Config & Credentials
+Instead of restricted service accounts, this bot safely uses standard User OAuth so files upload straight to your personal storage allocation.
+
+Go to the Google Cloud Console.
+
+Create a new project and enable the Google Drive API.
+
+Configure your OAuth Consent Screen (set User Type to External).
+
+CRITICAL STEP: Because your Google App status will be in Testing, click Add Users under the Test Users section and input the Gmail address of the Google Drive account you intend to use. (Skipping this will trigger a 403: access_denied error).
+
+Navigate to Credentials -> Create Credentials -> OAuth Client ID. Select Desktop App as the application type.
+
+Download the generated JSON credentials file, rename it exactly to oauth_credentials.json, and place it in the root folder of this project.
+
+🏃 Operation
+To launch your bot engine, run the main file from your terminal:
 python main.py
 
-The first time it needs to upload to Drive, a browser window opens asking you to log into the Google account that owns the target folder and approve access. After that, a token is cached in oauth_token.json and it won't ask again.
+🎯 How to Use It in Telegram:
+Open a chat with your bot on Telegram and press /start.
 
-How to use the bot
-Open a chat with your bot on Telegram, send /start.
-Send it a .docx file.
-It replies with the converted PDF.
-It shows buttons for each subfolder in your configured Drive folder — tap the one you want.
-It uploads the PDF there and replies with the Drive file ID and shareable link.
-Files this bot creates/uses locally
-File	Purpose
-.env	Your secrets (tokens, keys, folder ID) — never commit this
-oauth_credentials.json	Your Google OAuth client secret — never commit this
-oauth_token.json	Cached login token, created automatically after your first login — never commit this
-downloads/	Temporary folder for files mid-conversion; cleaned up automatically
+Attach and send any valid .docx document file.
 
-.gitignore:
+The bot will automatically process it, send the converted .pdf document back to you in the chat, and display an inline keyboard showing your active Google Drive subfolder configurations.
 
-.env
-oauth_credentials.json
-oauth_token.json
-downloads/
-__pycache__/
-*.pyc
-Design notes / known workarounds
-iLoveAPI auth: the official ilovepdf library normally requests a token from /auth. Some projects get an Invalid origin 401 there depending on account settings, and the library doesn't fall back to local signing on an HTTP error response (only on network failures). converter.py patches this to always self-sign the JWT locally using the secret key — this is also iLoveAPI's own recommended approach for server-side code.
-Drive auth uses OAuth, not a service account — service accounts have zero storage quota on free/personal Gmail accounts (storageQuotaExceeded errors), so this bot authenticates as your own Google account instead.
-Resumable uploads: Drive uploads use resumable=True with small chunks rather than a single-shot upload, since single-shot uploads were failing/timing out for files above ~400-500KB on slower connections.
-Extended timeouts: the Telegram Application is built with longer connect/read/write/pool timeouts, since the defaults are tuned for small text messages, not file transfers.
-Decoupled send-then-upload flow: sending the PDF back on Telegram and uploading to Drive are wrapped in separate try/except blocks, so a slow/failed Telegram send doesn't prevent the Drive folder-picker step from running.
-Troubleshooting
+Tap your target folder option. The bot will upload the file and print out your confirmation logs, file link, and raw File ID.
 
-telegram.error.InvalidToken: ...your_fallback_token_here... Your .env isn't being loaded. Check: file is named exactly .env (not .env.txt), it's in the same folder as main.py, you're running python main.py from that folder, and python-dotenv is installed.
-
-Error 403: access_denied when logging into Google Your OAuth app is in "Testing" mode and your Google account isn't listed as a test user. Add it under OAuth consent screen → Test users.
-
-storageQuotaExceeded on upload Means a service account is being used instead of OAuth. This bot is already set up for OAuth — make sure drive.py hasn't been reverted to service-account auth.
-
-Invalid origin from iLoveAPI Handled automatically via local JWT self-signing (see Design notes above). If you still see this, confirm you're on the current converter.py.
-
-Conversion or Drive upload times out / large files fail Covered by the resumable-upload and extended-timeout changes described above. If it's still happening, it's likely your network connection itself being slow/unstable at that moment — the code will now retry chunks rather than fail outright.
-
-Bot doesn't respond on Telegram at all Check your terminal for connection errors to api.telegram.org — usually a sign Telegram is blocked on your network/ISP, or a firewall/antivirus is blocking outbound Python connections.
-
-Notes
-Only the immediate subfolders of your configured Drive folder are listed (one level deep).
-The iLoveAPI free tier has a monthly conversion cap — check usage on the iloveapi.com dashboard if conversions start failing unexpectedly.
+Note: On your very first upload, a browser tab will automatically open on your host computer asking you to approve your app's access to your Google account. Once signed in, a local oauth_token.json file will capture the session so you don't have to log in manually again.

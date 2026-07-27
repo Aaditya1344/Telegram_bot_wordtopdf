@@ -42,19 +42,34 @@ def list_subfolders(parent_folder_id: str) -> list:
     return results.get("files", [])
 
 def upload_to_drive(file_path: str, filename: str, folder_id: str) -> dict:
-    """Uploads file asset returning specific link and ID metrics."""
+    """
+    Uploads a file to the given Google Drive folder using a resumable,
+    chunked upload. This is more reliable for anything beyond a tiny file -
+    a single-shot upload can time out partway through on slower connections,
+    whereas a resumable upload sends it in pieces and retries failed chunks
+    instead of failing the whole request.
+    Returns a dict with the file's Drive ID and shareable link:
+        {"id": "...", "webViewLink": "..."}
+    """
     drive_service = get_drive_service()
 
     file_metadata = {"name": filename, "parents": [folder_id]}
-    media = MediaFileUpload(file_path, mimetype="application/pdf")
-
-    uploaded = (
-        drive_service.files()
-        .create(body=file_metadata, media_body=media, fields="id, webViewLink")
-        .execute()
+    media = MediaFileUpload(
+        file_path,
+        mimetype="application/pdf",
+        resumable=True,
+        chunksize=256 * 1024,  # 256KB chunks
     )
 
+    request = drive_service.files().create(
+        body=file_metadata, media_body=media, fields="id, webViewLink"
+    )
+
+    response = None
+    while response is None:
+        status, response = request.next_chunk(num_retries=5)
+
     return {
-        "id": uploaded.get("id", ""),
-        "webViewLink": uploaded.get("webViewLink", ""),
+        "id": response.get("id", ""),
+        "webViewLink": response.get("webViewLink", ""),
     }
